@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KÍGYÓÓ</title>
+<style>
+html, body {
+    margin: 0;
+    height: 100%;
+    background: linear-gradient(135deg, #8e2de2, #4a00e0);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: sans-serif;
+    color: white;
+}
+canvas {
+    background: black;
+}
+h1 { margin-bottom: 10px; }
+#score { margin-bottom: 10px; font-size: 18px; }
+/* W-A-S-D elrendezés */
+#controls {
+    display: grid;
+    grid-template-columns: 60px 60px 60px;
+    grid-template-rows: 60px 60px 60px;
+    gap: 10px;
+    margin-top: 10px;
+    justify-items: center;
+    align-items: center;
+}
+#controls button {
+    font-size: 24px;
+    width: 60px;
+    height: 60px;
+}
+button#restartBtn {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+}
+</style>
+</head>
+<body>
+<h1>KÍGYÓÓ</h1>
+<div>Pontszám: <span id="score">0</span></div>
+<canvas id="gameCanvas" width="400" height="400"></canvas>
+
+<div id="controls">
+    <div></div><button id="up">W</button><div></div>
+    <button id="left">A</button><button id="down">S</button><button id="right">D</button>
+</div>
+<button id="restartBtn">Új játék</button>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreElement = document.getElementById("score");
+const restartBtn = document.getElementById("restartBtn");
+const box = 20;
+
+let snake = [{x:8*box, y:8*box}];
+let direction = "RIGHT";
+let nextDirection = "RIGHT";
+let score = 0;
+let food = {};
+let isPaused = false;
+
+// Alma generálása véletlenszerűen, a kígyó testén kívül
+function generateFood() {
+    let newFood;
+    do {
+        newFood = { x: Math.floor(Math.random() * 20) * box, y: Math.floor(Math.random() * 20) * box };
+    } while (snake.some(seg => seg.x === newFood.x && seg.y === newFood.y));
+    return newFood;
+}
+
+// Játék inicializálás
+function resetGame() {
+    snake = [{x:8*box, y:8*box}];
+    direction = nextDirection = "RIGHT";
+    score = 0;
+    scoreElement.innerText = score;
+    food = generateFood();
+    isPaused = false;
+}
+
+// Ütközés ellenőrzés
+function collision(head) {
+    return snake.some(seg => seg.x === head.x && seg.y === head.y);
+}
+
+// PC billentyűk
+document.addEventListener("keydown", e => {
+    const key = e.key.toLowerCase();
+    if(key==="arrowleft"||key==="a") if(direction!=="RIGHT") nextDirection="LEFT";
+    if(key==="arrowup"||key==="w") if(direction!=="DOWN") nextDirection="UP";
+    if(key==="arrowright"||key==="d") if(direction!=="LEFT") nextDirection="RIGHT";
+    if(key==="arrowdown"||key==="s") if(direction!=="UP") nextDirection="DOWN";
+});
+
+// Telefonos gombok (W-A-S-D)
+document.getElementById("up").addEventListener("click", () => { if(direction!=="DOWN") nextDirection="UP"; });
+document.getElementById("down").addEventListener("click", () => { if(direction!=="UP") nextDirection="DOWN"; });
+document.getElementById("left").addEventListener("click", () => { if(direction!=="RIGHT") nextDirection="LEFT"; });
+document.getElementById("right").addEventListener("click", () => { if(direction!=="LEFT") nextDirection="RIGHT"; });
+
+// Restart
+restartBtn.addEventListener("click", resetGame);
+
+// Rajzolás
+function draw() {
+    if(isPaused) return;
+    direction = nextDirection;
+
+    // Teljes háttér
+    ctx.fillStyle = "black";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // Új fej pozíció
+    let snakeX = snake[0].x;
+    let snakeY = snake[0].y;
+    if(direction==="LEFT") snakeX-=box;
+    if(direction==="UP") snakeY-=box;
+    if(direction==="RIGHT") snakeX+=box;
+    if(direction==="DOWN") snakeY+=box;
+    const newHead = {x:snakeX, y:snakeY};
+
+    // Ütközés
+    if(snakeX<0||snakeX>=canvas.width||snakeY<0||snakeY>=canvas.height||collision(newHead)){
+        isPaused = true;
+        resetGame();
+        return;
+    }
+
+    // Alma elfogása
+    let ate = false;
+    if(snakeX===food.x && snakeY===food.y){
+        score++;
+        scoreElement.innerText = score;
+        food = generateFood();
+        ate = true;
+    }
+
+    // Kígyó mozgás
+    snake.unshift(newHead);
+    if(!ate) snake.pop();
+
+    // Kígyó rajzolása
+    snake.forEach((seg,i)=>{
+        ctx.fillStyle = i===0 ? "lime" : "white";
+        ctx.fillRect(seg.x,seg.y,box,box);
+        ctx.strokeStyle="#000";
+        ctx.strokeRect(seg.x,seg.y,box,box);
+    });
+
+    // Alma
+    ctx.fillStyle = "red";
+    ctx.fillRect(food.x, food.y, box, box);
+}
+
+resetGame();
+setInterval(draw, 100);
+</script>
+</body>
+</html>
